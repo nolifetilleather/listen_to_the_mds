@@ -82,31 +82,26 @@ def search_by_author_set(message):
     )
 
 @listen_to_the_mds_bot.message_handler(content_types=['text'])
-def search_by_author(message):
+def search_by_strng(message):
     if (
             message.from_user.id in users_states_dict
             and
-            users_states_dict[message.from_user.id].author_selection_expected
+            (users_states_dict[message.from_user.id].author_selection_expected
+             or
+             users_states_dict[message.from_user.id].title_selection_expected)
     ):
-
+        # сохраняем запрос пользователя
         users_states_dict[message.from_user.id].strng = message.text
+        # "перестаем ожидать" вво
 
-        sorted_list = sorted_by_strng_titles_list(
-            recordings_base=recordings_base,
-            column='author',
-            strng=message.text,
-            reverse=users_states_dict[message.from_user.id]
-            .reversed_by_date_search_result,
+        pages_dict = dict_with_pages_for_navigation(
+            sorted_by_strng_recordings_list(
+                recordings_base=recordings_base,
+                column='author',
+                strng=message.text,
+                reverse=users_states_dict[message.from_user.id]
+                .reversed_by_date_search_result,
+            )
         )
-        """
-        pages = len(sorted_list) // 10  # количество страниц
-        result_dict = {}
-        for i in range(pages + 1):
-            page = i + 1  #  номер страницы
-            if i != pages:
-                result_dict[page] = sorted_list[i:i*10]
-            else:
-                result_dict[page] = sorted_list[i:(len(sorted_list)+1)]
-        """
 
 listen_to_the_mds_bot.polling(none_stop=True, interval=0)

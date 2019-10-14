@@ -46,7 +46,7 @@ def append_recording_id_date(lst, recordings_base, i, reverse=False):
 
 # $$$$$$$$$$$$$$$$$$$$$ ФУНКЦИИ ДЛЯ ПОИСКА ЗАПИСЕЙ $$$$$$$$$$$$$$$$$$$$$
 # По вхождению подстроки в строку из ячейки стлобца
-def sorted_by_strng_titles_list(
+def sorted_by_strng_recordings_list(
     recordings_base,
     column,
     strng,
@@ -64,7 +64,7 @@ def sorted_by_strng_titles_list(
     return sorted_list
 
 # По соответствию передаваемым границам значению длины записи
-def sorted_by_length_titles_list(
+def sorted_by_length_recordings_list(
     recordings_base,
     strng,
     reverse=False
