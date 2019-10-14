@@ -46,10 +46,13 @@ def append_recording_id_date(lst, recordings_base, i, reverse=False):
 
 # $$$$$$$$$$$$$$$$$$$$$ ФУНКЦИИ ДЛЯ ПОИСКА ЗАПИСЕЙ $$$$$$$$$$$$$$$$$$$$$
 # По вхождению подстроки в строку из ячейки стлобца
-def sorted_by_strng_titles_list(recordings_base, column, strng, reverse):
-
+def sorted_by_strng_titles_list(
+    recordings_base,
+    column,
+    strng,
+    reverse=False
+):
     sorted_list = []
-
     for i in range(len(recordings_base)):
         if strng.lower() in recordings_base[column][i].lower():
             append_recording_id_date(
@@ -58,21 +61,23 @@ def sorted_by_strng_titles_list(recordings_base, column, strng, reverse):
                 i,
                 reverse
             )
-
     return sorted_list
 
 # По соответствию передаваемым границам значению длины записи
-def sorted_by_length_titles_list(recordings_base, strng, reverse):
-
+def sorted_by_length_titles_list(
+    recordings_base,
+    strng,
+    reverse=False
+):
     import re
 
-    condition = re.findall(r'\d+', strng)
-    condition = list(map(int, condition))
+    limits = re.findall(r'\d+', strng)
+    limits = list(map(int, limits))
     sorted_list = []
 
     for i in range(len(recordings_base)):
         length = int(recordings_base["length"][i])
-        if condition[0] <= length <= condition[-1]:
+        if limits[0] <= length <= limits[-1]:
             append_recording_id_date(
                 sorted_list,
                 recordings_base,
@@ -81,3 +86,16 @@ def sorted_by_length_titles_list(recordings_base, strng, reverse):
             )
 
     return sorted_list
+
+# ФОРМИРОВАНИЕ СЛОВАРЯ СТРАНИЦ
+def dict_with_pages_for_navigation(sorted_list):
+    pages = len(sorted_list) // 10  # количество страниц
+    result_dict = {}
+    for i in range(pages + 1):
+        page = i + 1  # номер страницы
+        if i != pages:
+            result_dict[page] = sorted_list[i*10:i*10+10]
+        else:
+            result_dict[page] = sorted_list[i*10:]
+
+    return result_dict

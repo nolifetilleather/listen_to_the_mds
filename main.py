@@ -54,27 +54,6 @@ def start(message):
         users_states_dict[message.from_user.id] = user
     print(users_states_dict)
 
-# ПОИСК ПО АВТОРУ
-def search_by_author(message):
-
-    users_states_dict[message.from_user.id].strng = message.text
-
-    sorted_list = sorted_by_strng_titles_list(
-        recordings_base=recordings_base,
-        column='author',
-        strng=message.text,
-        reverse=users_states_dict[message.from_user.id]
-        .reversed_by_date_search_result,
-    )
-    pages = len(sorted_list) // 10  # количество страниц
-    result_dict = {}
-    for i in range(pages + 1):
-        page = i + 1  #  номер страницы
-        if i != pages:
-            result_dict[page] = sorted_list[i:i*10]
-        else:
-            result_dict[page] = sorted_list[i:(len(sorted_list)+1)]
-
 # состояние поиска по автору вкл
 @listen_to_the_mds_bot.message_handler(commands=['search_by_author'])
 def search_by_author_set(message):
@@ -102,8 +81,7 @@ def search_by_author_set(message):
         ),
     )
 
-# @listen_to_the_mds_bot.message_handler(content_types=['text'])
-"""
+@listen_to_the_mds_bot.message_handler(content_types=['text'])
 def search_by_author(message):
     if (
             message.from_user.id in users_states_dict
@@ -120,6 +98,7 @@ def search_by_author(message):
             reverse=users_states_dict[message.from_user.id]
             .reversed_by_date_search_result,
         )
+        """
         pages = len(sorted_list) // 10  # количество страниц
         result_dict = {}
         for i in range(pages + 1):
@@ -128,6 +107,6 @@ def search_by_author(message):
                 result_dict[page] = sorted_list[i:i*10]
             else:
                 result_dict[page] = sorted_list[i:(len(sorted_list)+1)]
-"""
+        """
 
 listen_to_the_mds_bot.polling(none_stop=True, interval=0)
