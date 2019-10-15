@@ -11,9 +11,9 @@ class UserState:
         self.page_selection_expected = False
         self.recording_selection_expected = False
 
-        self.page = 0
-        self.strng = ''
-        self.column = ''
+        self.page = None
+        self.strng = None
+        self.column = None
 
         self.reversed_by_date_search_result = False
 

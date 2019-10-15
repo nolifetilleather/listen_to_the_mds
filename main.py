@@ -2,7 +2,7 @@ import telebot
 import pandas as pd
 import auth
 from classes import *
-from functions import *
+import functions as fnc
 
 users_states_dict = {}
 recordings_base = pd.read_excel('recordings_base.xlsx')
@@ -87,22 +87,55 @@ def search_by_strng(message):
              or
              users_states_dict[user_id].title_selection_expected)
     ):
-        
+
         user_state = users_states_dict[user_id]
 
-        # "перестаем ожидать" ввод подстроки для поиска
-        user_state.reset()
-        # сохраняем запрос пользователя
-        user_state.strng = message.text
+        column_dict = {
+            True: 'author',
+            False: 'title',
+        }
 
-        pages_dict = dict_with_pages_for_navigation(
-            sorted_by_strng_recordings_list(
+        pages_dict = fnc.dict_with_pages_for_navigation(
+            fnc.sorted_by_strng_recordings_list(
                 recordings_base=recordings_base,
-                column='author',
+                column=column_dict[user_state.author_selection_expected],
                 strng=message.text,
-                reverse=users_states_dict[message.from_user.id]
+                reverse=users_states_dict[user_id]
                 .reversed_by_date_search_result,
             )
         )
+
+        if len(pages_dict[1]) == 0:
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                'По вашему запросу ничего не найдено.\n'
+                'Повторите ввод или измените способ поиска /start',
+            )
+        else:
+            # сохраняем в атрибут название столбца для поиска
+            user_state.column = \
+                column_dict[user_state.author_selection_expected]
+
+            # сохраняем запрос пользователя
+            user_state.strng = message.text
+
+            # перестаем ожидать ввод подстроки для поиска
+            if user_state.author_selection_expected:
+                user_state.author_selection_expected = False
+            elif user_state.title_selection_expected:
+                user_state.title_selection_expected = False
+
+            # устанавливаем значение запрашиваемой страницы == 0
+            user_state.page = 0
+
+            # начинаем ожидать изменения страницы для навигации
+            user_state.page_selection_expected = True
+
+            # начинаем ожидать выбора записи
+            user_state.recording_selection_expected = True
+
+def send_page_for_recording_selection(user_state):
+    
+
 
 listen_to_the_mds_bot.polling(none_stop=True, interval=0)
