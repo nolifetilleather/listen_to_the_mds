@@ -7,46 +7,42 @@ def append_recording_id_date(lst, recordings_base, i, reverse=False):
     сортировки этого списка в том или ином порядке по ключу,
     который является датой записи.
 
-    lst - передаваемый список
-    recordings_base - передаваемый pandas.DataFrame()
-    i - меняющееся в цикле значение строки recordings_base
-    reverse - флаг указывающий на необходимость расположить записи
+    lst: передаваемый список
+    recordings_base: передаваемый pandas.DataFrame()
+    i: меняющееся в цикле значение строки recordings_base
+    reverse: флаг указывающий на необходимость расположить записи
     в порядке убывания даты
 
     Каждый добавляемый таким образом в передаваемый список элемент
-    являеся списком из трех строк. Назначения этих строк по индексам:
-    [0] - Подстрока из информации о записи предназначенная для вывода
-    в диалог с пользователем (для навигации по записям).
-    [1] - id сообщения, в котором хранится аудиозапись на сервере
-    [2] - Дата записи. Необходима для сортировки и является подстрокой,
-    которая при выводе в диалог с пользователем строки с индексом [0]
-    добавляется в ее конец.
+    являеся списком из пяти строк. Индексы строк:
+    [0] - Имя автора
+    [1] - Название произведения
+    [2] - Длина аудиозаписи в минутах
+    [3] - id сообщения с аудиозаписью
+    [4] - Дата записи
     """
-    recording = (
-        f'{recordings_base["author"][i]} - '
-        f'{recordings_base["title"][i]}\n'
-        f'{recordings_base["length"][i]} мин - '
-    )
-    recording_id = (
-        f'{recordings_base["recording_id"][i]}'
-    )
-    date = (
-        f'{recordings_base["date"][i].split()[0]}'
-    )
+    author = f'{recordings_base["author"][i]}'
+    title = f'{recordings_base["title"][i]}'
+    length = f'{recordings_base["length"][i]}'
+    recording_id = f'{recordings_base["recording_id"][i]}'
+    date = f'{recordings_base["date"][i].split()[0]}'  # .split нужен
+    # чтобы убрать время из представления даты вида YYYY-MM-DD HH:MM:SS
     lst.append(
         [
-            recording,
-            recording_id,
+            author,
+            title,
+            length,
             date,
+            recording_id,
         ]
     )
-    lst.sort(key=lambda el: el[2])
+    lst.sort(key=lambda el: el[-2])
     if reverse:
         lst.reverse()
 
 # $$$$$$$$$$$$$$$$$$$$$ ФУНКЦИИ ДЛЯ ПОИСКА ЗАПИСЕЙ $$$$$$$$$$$$$$$$$$$$$
 # По вхождению подстроки в строку из ячейки стлобца
-def sorted_by_strng_recordings_list(
+def sorted_by_strng_in_column_recordings_list(
     recordings_base,
     column,
     strng,
@@ -99,3 +95,27 @@ def dict_with_pages_for_navigation(sorted_list):
             result_dict[page] = sorted_list[i*10:]
 
     return result_dict
+
+# СТРАНИЦА НАВИГАЦИИ
+def navigation_page(dct, user_state):
+
+    page = ''
+    rec_num = 1
+
+    for rec_info in dct[user_state.page]:
+        author = rec_info[0]
+        title = rec_info[1]
+        length = rec_info[2]
+        date = rec_info[3]
+        page += (
+            f'{rec_num}. {author} - {title}\n'
+            f'{length} мин - {date}\n\n'
+        )
+        rec_num += 1
+
+    page += (
+        f'Текущая страница: {user_state.page}\n'
+        f'Всего страниц: {len(dct)}'
+    )
+
+    return page

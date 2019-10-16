@@ -5,14 +5,14 @@ from classes import *
 import functions as fnc
 
 users_states_dict = {}
-recordings_base = pd.read_excel('recordings_base.xlsx')
+recordings_base = pd.read_excel('recordings_base.xlsx', dtype=str)
 
 listen_to_the_mds_bot = telebot.TeleBot(auth.token)
 
-choice_keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
-choice_keyboard.row('1', '2', '3', '4', '5')
-choice_keyboard.row('6', '7', '8', '9', '10')
-choice_keyboard.row('<<', '<', '>', '>>')
+recording_choice_keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
+recording_choice_keyboard.row('1', '2', '3', '4', '5')
+recording_choice_keyboard.row('6', '7', '8', '9', '10')
+recording_choice_keyboard.row('<<', '<', '>', '>>')
 
 # СТАРТ/СБРОС
 @listen_to_the_mds_bot.message_handler(commands=['start'])
@@ -51,9 +51,9 @@ def start(message):
         ),
     )
 
-# состояние поиска по автору "вкл"
+# ВЫБОР ПОИСКА ПО АВТОРУ
 @listen_to_the_mds_bot.message_handler(commands=['search_by_author'])
-def search_by_author_set(message):
+def set_search_by_author(message):
 
     user_id = message.from_user.id
 
@@ -75,11 +75,13 @@ def search_by_author_set(message):
         'Введите имя автора',
     )
 
+
 @listen_to_the_mds_bot.message_handler(content_types=['text'])
-def search_by_strng(message):
+def search_and_navigation(message):
 
     user_id = message.from_user.id
 
+    # ПОИСК ПО АВТОРУ ИЛИ НАЗВАНИЮ
     if (
             user_id in users_states_dict
             and
@@ -96,7 +98,7 @@ def search_by_strng(message):
         }
 
         pages_dict = fnc.dict_with_pages_for_navigation(
-            fnc.sorted_by_strng_recordings_list(
+            fnc.sorted_by_strng_in_column_recordings_list(
                 recordings_base=recordings_base,
                 column=column_dict[user_state.author_selection_expected],
                 strng=message.text,
@@ -111,6 +113,7 @@ def search_by_strng(message):
                 'По вашему запросу ничего не найдено.\n'
                 'Повторите ввод или измените способ поиска /start',
             )
+
         else:
             # сохраняем в атрибут название столбца для поиска
             user_state.column = \
@@ -125,8 +128,15 @@ def search_by_strng(message):
             elif user_state.title_selection_expected:
                 user_state.title_selection_expected = False
 
-            # устанавливаем значение запрашиваемой страницы == 0
-            user_state.page = 0
+            # устанавливаем значение запрашиваемой страницы == 1
+            user_state.page = 1
+
+            # отправляем пользователю страницу для навигации
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                fnc.navigation_page(pages_dict, user_state),
+                reply_markup=recording_choice_keyboard,
+            )
 
             # начинаем ожидать изменения страницы для навигации
             user_state.page_selection_expected = True
@@ -134,8 +144,63 @@ def search_by_strng(message):
             # начинаем ожидать выбора записи
             user_state.recording_selection_expected = True
 
-def send_page_for_recording_selection(user_state):
-    
+    # НАВИГАЦИЯ
+    elif (
+            user_id in users_states_dict
+            and
+            users_states_dict[user_id].page_selection_expected
+            and
+            users_states_dict[user_id].recording_selection_expected
+            and
+            message.text in ('<<', '<', '>', '>>')
+    ):
 
+        user_state = users_states_dict[user_id]
+
+        pages_dict = fnc.dict_with_pages_for_navigation(
+            fnc.sorted_by_strng_in_column_recordings_list(
+                recordings_base=recordings_base,
+                column=user_state.column,
+                strng=user_state.strng,
+                reverse=users_states_dict[user_id]
+                .reversed_by_date_search_result,
+            )
+        )
+
+        page_was_changed = True
+        if message.text == '>' and user_state.page < len(pages_dict):
+            user_state.page += 1
+        elif message.text == '>>' and user_state.page < len(pages_dict):
+            user_state.page = len(pages_dict)
+        elif message.text == '<' and user_state.page > 1:
+            user_state.page -= 1
+        elif message.text == '<<' and user_state.page > 1:
+            user_state.page = 1
+        else:
+            page_was_changed = False
+
+        if page_was_changed:
+
+            pages_dict = fnc.dict_with_pages_for_navigation(
+                fnc.sorted_by_strng_in_column_recordings_list(
+                    recordings_base=recordings_base,
+                    column=user_state.column,
+                    strng=user_state.strng,
+                    reverse=users_states_dict[user_id]
+                    .reversed_by_date_search_result,
+                )
+            )
+
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                fnc.navigation_page(pages_dict, user_state),
+                reply_markup=recording_choice_keyboard,
+            )
+        else:
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                'Недопустимое изменение страницы!',
+                reply_markup=recording_choice_keyboard,
+            )
 
 listen_to_the_mds_bot.polling(none_stop=True, interval=0)
