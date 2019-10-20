@@ -18,8 +18,8 @@ def append_recording_id_date(lst, recordings_base, i, reverse=False):
     [0] - Имя автора
     [1] - Название произведения
     [2] - Длина аудиозаписи в минутах
-    [3] - id сообщения с аудиозаписью
-    [4] - Дата записи
+    [3] - Дата записи
+    [4] - id сообщения с аудиозаписью
     """
     author = f'{recordings_base["author"][i]}'
     title = f'{recordings_base["title"][i]}'

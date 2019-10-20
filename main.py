@@ -104,10 +104,32 @@ def set_search_by_length(message):
         reply_markup=length_choice_keyboard,
     )
 
-# @@@@@@@@@@@@@@@@@@@@@@@@@ ПОИСК И НАВИГАЦИЯ @@@@@@@@@@@@@@@@@@@@@@@@@@
-@listen_to_the_mds_bot.message_handler(content_types=['text'])
-def search_and_navigation(message):
+# @@@@@@@@@@@@@@@@ ПОИСК, НАВИГАЦИЯ, АДМИНИСТРИРОВАНИЕ @@@@@@@@@@@@@@@@@
+# используем в навигаци и выборе записи для уменьшения повторов кода
+def return_pages_dict(state):
+    if state.column is not None:
+        pgs_dict = fnc.dict_of_navigation_pages(
+            fnc.sorted_by_strng_in_column_recordings_list(
+                recordings_base=recordings_base,
+                column=state.column,
+                strng=state.strng,
+                reverse=state.reversed_by_date_search_result,
+            )
+        )
+    else:
+        pgs_dict = fnc.dict_of_navigation_pages(
+            fnc.sorted_by_length_recordings_list(
+                recordings_base=recordings_base,
+                strng=state.strng,
+                reverse=state.reversed_by_date_search_result,
+            )
+        )
+    return pgs_dict
 
+@listen_to_the_mds_bot.message_handler(content_types=['text'])
+def search_navigation_administration(message):
+
+    global recordings_base
     user_id = message.from_user.id
 
     # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -228,26 +250,6 @@ def search_and_navigation(message):
              int(message.text) in range(1, 11))
     ):
 
-        def return_pages_dict(state):
-            if state.column is not None:
-                pgs_dict = fnc.dict_of_navigation_pages(
-                    fnc.sorted_by_strng_in_column_recordings_list(
-                        recordings_base=recordings_base,
-                        column=state.column,
-                        strng=state.strng,
-                        reverse=state.reversed_by_date_search_result,
-                    )
-                )
-            else:
-                pgs_dict = fnc.dict_of_navigation_pages(
-                    fnc.sorted_by_length_recordings_list(
-                        recordings_base=recordings_base,
-                        strng=state.strng,
-                        reverse=state.reversed_by_date_search_result,
-                    )
-                )
-            return pgs_dict
-
         user_state = users_states_dict[user_id]
         pages_dict = return_pages_dict(user_state)
 
@@ -278,5 +280,66 @@ def search_and_navigation(message):
                     'Недопустимое изменение страницы',
                     reply_markup=recording_choice_keyboard,
                 )
+
+        # ВЫБОР ЗАПИСИ
+        elif (
+                int(message.text) in range(1, 11)
+                and
+                len(pages_dict[user_state.page]) >= int(message.text)
+        ):
+            listen_to_the_mds_bot.forward_message(
+                user_id,
+                auth.bot_admin_id,
+                pages_dict[user_state.page][int(message.text) - 1][4],
+            )
+        elif(
+                int(message.text) in range(1, 11)
+                and
+                len(pages_dict[user_state.page]) < int(message.text)
+        ):
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                'Недопустимый ввод',
+                reply_markup=recording_choice_keyboard,
+            )
+
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # $$$$$$$$$$$$$$$$$$$$$$$ АДМИНИСТРИРОВАНИЕ $$$$$$$$$$$$$$$$$$$$$$$$
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+    # для обновления recordings_base через сообщение в тг
+    elif (
+            message.text == 'refreshdata'
+            and
+            user_id == auth.bot_admin_id
+    ):
+        try:
+            listen_to_the_mds_bot.send_message(
+                    user_id,
+                    f'Число элементов в recordings_base до обновления: '
+                    f'{len(recordings_base)}.\n'
+                    'Пробую обновить...',
+                )
+
+            recordings_base = pd.read_excel('recordings_base.xlsx')
+
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                'Обновление прошло успешно!\n'
+                'Число элементов в recordings_base после обновления: '
+                f'{len(recordings_base)}',
+            )
+        except Exception as e:
+            listen_to_the_mds_bot.send_message(
+                user_id,
+                f'Возникла ошибка: {e}',
+            )
+
+    # отправка собственного message_id администратору бота
+    elif user_id == auth.bot_admin_id:
+        listen_to_the_mds_bot.send_message(
+            user_id,
+            message.message_id,
+        )
 
 listen_to_the_mds_bot.polling(none_stop=True, interval=0)
