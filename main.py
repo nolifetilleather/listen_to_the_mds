@@ -55,6 +55,36 @@ def start(message):
         ),
     )
 
+# @@@@@@@@@@@@@@@@@@@@ ИЗМЕНЕНИЕ ПОРЯДКА СОРТИРОВКИ @@@@@@@@@@@@@@@@@@@@
+@listen_to_the_mds_bot.message_handler(commands=['reverse_sort_by_date'])
+def reverse_sort_by_date(message):
+
+    user_id = message.from_user.id
+
+    if user_id not in users_states_dict:
+        user_state = UserState()
+        user_state.search_type_selection_expected = True
+        users_states_dict[user_id] = user_state
+    else:
+        user_state = users_states_dict[user_id]
+        user_state.reversed_by_date_search_result = \
+        not user_state.reversed_by_date_search_result
+
+    user_state.reset() # reset не сбрасывет значение
+                       # .reversed_by_date_search_result
+
+    # это сообщение выводится в любом случае
+    listen_to_the_mds_bot.send_message(
+        user_id,
+        (
+            'Порядок вывода записей изменен!\n\n'
+            '/search_by_author\nПоиск по имени автора\n\n'
+            '/search_by_title\nПоиск по названию\n\n'
+            '/search_by_length\nПоиск по длине записи\n\n'
+            '/reverse_sort_by_date\nРеверсировать порядок результата поиска'
+        ),
+    )
+
 # @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО АВТОРУ @@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['search_by_author'])
 def set_search_by_author(message):
