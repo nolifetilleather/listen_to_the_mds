@@ -67,24 +67,25 @@ def sorted_by_length_recordings_list(
 ):
     import re
 
-    limits = re.findall(r'\d+', strng)
-    limits = list(map(int, limits))
     sorted_list = []
+    limits = re.findall(r'\d+', strng)
 
-    for i in range(len(recordings_base)):
-        length = int(recordings_base["length"][i])
-        if limits[0] <= length <= limits[-1]:
-            append_recording_id_date(
-                sorted_list,
-                recordings_base,
-                i,
-                reverse
-            )
+    if len(limits) == 2:
+        limits = list(map(int, limits))
+        for i in range(len(recordings_base)):
+            length = int(recordings_base["length"][i])
+            if limits[0] < length < limits[-1]:
+                append_recording_id_date(
+                    sorted_list,
+                    recordings_base,
+                    i,
+                    reverse,
+                )
 
     return sorted_list
 
 # ФОРМИРОВАНИЕ СЛОВАРЯ СТРАНИЦ
-def dict_with_pages_for_navigation(sorted_list):
+def dict_of_navigation_pages(sorted_list):
     pages = len(sorted_list) // 10  # количество страниц
     result_dict = {}
     for i in range(pages + 1):
