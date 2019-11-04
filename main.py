@@ -1,8 +1,10 @@
 import telebot
 import pandas as pd
-import auth
 from classes import *
+import auth
 import functions as fnc
+
+module_name = 'main'
 
 users_states_dict = {}
 recordings_base = pd.read_excel('recordings_base.xlsx', dtype=str)
@@ -18,11 +20,17 @@ length_choice_keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
 length_choice_keyboard.row('0..15', '15..30', '30..60')
 length_choice_keyboard.row('60..90', '90..180', '180..999')
 
+fnc.log_write(
+    module_name,
+    'Главный модуль запущен.'
+)
+
 # @@@@@@@@@@@@@@@@@@@@@@@@@@ СТАРТ/СБРОС @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['start'])
 def start(message):
 
     user_id = message.from_user.id
+    print(message)
 
     # создание cоcтояния пользователя
     if user_id not in users_states_dict:
@@ -107,6 +115,30 @@ def set_search_by_author(message):
     listen_to_the_mds_bot.send_message(
         user_id,
         'Введите имя автора',
+    )
+
+# @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО НАЗВАНИЮ @@@@@@@@@@@@@@@@@@@@@@@
+@listen_to_the_mds_bot.message_handler(commands=['search_by_title'])
+def set_search_by_title(message):
+
+    user_id = message.from_user.id
+
+    # создание cоcтояния пользователя
+    if user_id not in users_states_dict:
+        user_state = UserState()
+        user_state.title_selection_expected = True
+        users_states_dict[user_id] = user_state
+
+    # сброс и установка состояния пользователя
+    elif user_id in users_states_dict:
+        user_state = users_states_dict[user_id]
+        user_state.reset()
+        user_state.title_selection_expected = True
+
+    # это сообщение выводится в любом случае
+    listen_to_the_mds_bot.send_message(
+        user_id,
+        'Введите название',
     )
 
 # @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО ДЛИНЕ @@@@@@@@@@@@@@@@@@@@@@@@
@@ -277,7 +309,7 @@ def search_navigation_administration(message):
             and
             (message.text in ('<<', '<', '>', '>>')
              or
-             int(message.text) in range(1, 11))
+             message.text in (str(i) for i in range(1, 11)))
     ):
 
         user_state = users_states_dict[user_id]
@@ -367,6 +399,17 @@ def search_navigation_administration(message):
 
     # отправка собственного message_id администратору бота
     elif user_id == auth.bot_admin_id:
+        listen_to_the_mds_bot.send_message(
+            user_id,
+            message.message_id,
+        )
+
+@listen_to_the_mds_bot.message_handler(content_types=['audio'])
+def audio_id(message):
+
+    user_id = message.from_user.id
+
+    if user_id == auth.bot_admin_id:
         listen_to_the_mds_bot.send_message(
             user_id,
             message.message_id,

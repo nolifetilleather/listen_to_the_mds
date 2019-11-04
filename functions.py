@@ -25,7 +25,7 @@ def append_recording_id_date(lst, recordings_base, i, reverse=False):
     title = f'{recordings_base["title"][i]}'
     length = f'{recordings_base["length"][i]}'
     recording_id = f'{recordings_base["recording_id"][i]}'
-    date = f'{recordings_base["date"][i].split()[0]}'  # .split нужен
+    date = f'{str(recordings_base["date"][i]).split()[0]}'  # .split нужен
     # чтобы убрать время из представления даты вида YYYY-MM-DD HH:MM:SS
     lst.append(
         [
@@ -120,3 +120,13 @@ def navigation_page(dct, user_state):
     )
 
     return page
+
+def log_write(module_name, msg):
+    import datetime
+    today = datetime.datetime.today()
+    with open('./log/log.txt', 'a') as log:
+        log.write(
+            f'{module_name}:\n'
+            f'{today.strftime("%m/%d/%Y %H:%M:%S")}\n'
+            f'{msg}\n\n'
+        )
