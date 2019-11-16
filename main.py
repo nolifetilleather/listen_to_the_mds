@@ -280,7 +280,9 @@ def search_navigation_administration(message):
             # отправляем пользователю страницу для навигации
             listen_to_the_mds_bot.send_message(
                 user_id,
-                fnc.navigation_page(pages_dict, user_state),
+                fnc.navigation_page(
+                    pages_dict, user_state, recordings_base
+                ),
                 reply_markup=recording_choice_keyboard,
             )
             # начинаем ожидать изменения страницы для навигации
@@ -325,7 +327,9 @@ def search_navigation_administration(message):
             # отправляем пользователю страницу для навигации
             listen_to_the_mds_bot.send_message(
                 user_id,
-                fnc.navigation_page(pages_dict, user_state),
+                fnc.navigation_page(
+                    pages_dict, user_state, recordings_base
+                ),
                 reply_markup=recording_choice_keyboard,
             )
             # начинаем ожидать изменения страницы для навигации
@@ -369,7 +373,9 @@ def search_navigation_administration(message):
                 pages_dict = return_pages_dict(user_state)
                 listen_to_the_mds_bot.send_message(
                     user_id,
-                    fnc.navigation_page(pages_dict, user_state),
+                    fnc.navigation_page(
+                        pages_dict, user_state, recordings_base
+                    ),
                     reply_markup=recording_choice_keyboard,
                 )
             else:
@@ -385,10 +391,11 @@ def search_navigation_administration(message):
                 and
                 len(pages_dict[user_state.page]) >= int(message.text)
         ):
+            i = pages_dict[user_state.page][int(message.text) - 1]
             listen_to_the_mds_bot.forward_message(
                 user_id,
                 auth.bot_admin_id,
-                pages_dict[user_state.page][int(message.text) - 1][4],
+                recordings_base['recording_id'][i],
             )
         elif(
                 int(message.text) in range(1, 11)
@@ -535,10 +542,8 @@ def audio_id(message):
         new_line['title'][ind] = audio.title
         new_line['length'][ind] = str(ceil(audio.duration/60))
         new_line['recording_id'][ind] = str(message.message_id)
-        print(new_line)
 
         recordings_base = recordings_base.append(new_line)
-        print(recordings_base)
 
         rec_expected = False
         date_and_station_expected =True
