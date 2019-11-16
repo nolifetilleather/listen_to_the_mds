@@ -121,12 +121,22 @@ def navigation_page(dct, user_state):
 
     return page
 
+def msg_log_text(msg):
+    return (
+        f'msg_id: {msg.message_id}\n'
+        f'user_id: {msg.from_user.id}\n'
+        f'user_name: {msg.from_user.username}\n'
+        f'first_name: {msg.from_user.first_name}\n'
+        f'last_name: {msg.from_user.last_name}\n'
+        f'text: {msg.text}'
+    )
+
 def log_write(module_name, msg):
     import datetime
     today = datetime.datetime.today()
     with open('./log/log.txt', 'a') as log:
         log.write(
             f'{module_name}:\n'
-            f'{today.strftime("%m/%d/%Y %H:%M:%S")}\n'
+            f'{today.strftime("%d/%m/%Y %H:%M:%S")}\n'
             f'{msg}\n\n'
         )

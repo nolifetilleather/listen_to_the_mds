@@ -9,6 +9,9 @@ module_name = 'main'
 users_states_dict = {}
 recordings_base = pd.read_excel('recordings_base.xlsx', dtype=str)
 
+rec_expected = False
+date_and_station_expected = False
+
 listen_to_the_mds_bot = telebot.TeleBot(auth.token)
 
 recording_choice_keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
@@ -29,8 +32,12 @@ fnc.log_write(
 @listen_to_the_mds_bot.message_handler(commands=['start'])
 def start(message):
 
+    fnc.log_write(
+        module_name,
+        fnc.msg_log_text(message),
+    )
+
     user_id = message.from_user.id
-    print(message)
 
     # создание cоcтояния пользователя
     if user_id not in users_states_dict:
@@ -67,6 +74,11 @@ def start(message):
 @listen_to_the_mds_bot.message_handler(commands=['reverse_sort_by_date'])
 def reverse_sort_by_date(message):
 
+    fnc.log_write(
+        module_name,
+        fnc.msg_log_text(message),
+    )
+
     user_id = message.from_user.id
 
     if user_id not in users_states_dict:
@@ -97,6 +109,11 @@ def reverse_sort_by_date(message):
 @listen_to_the_mds_bot.message_handler(commands=['search_by_author'])
 def set_search_by_author(message):
 
+    fnc.log_write(
+        module_name,
+        fnc.msg_log_text(message),
+    )
+
     user_id = message.from_user.id
 
     # создание cоcтояния пользователя
@@ -120,6 +137,11 @@ def set_search_by_author(message):
 # @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО НАЗВАНИЮ @@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['search_by_title'])
 def set_search_by_title(message):
+
+    fnc.log_write(
+        module_name,
+        fnc.msg_log_text(message),
+    )
 
     user_id = message.from_user.id
 
@@ -145,6 +167,11 @@ def set_search_by_title(message):
 @listen_to_the_mds_bot.message_handler(commands=['search_by_length'])
 def set_search_by_length(message):
 
+    fnc.log_write(
+        module_name,
+        fnc.msg_log_text(message),
+    )
+
     user_id = message.from_user.id
 
     # создание cоcтояния пользователя
@@ -167,6 +194,7 @@ def set_search_by_length(message):
     )
 
 # @@@@@@@@@@@@@@@@ ПОИСК, НАВИГАЦИЯ, АДМИНИСТРИРОВАНИЕ @@@@@@@@@@@@@@@@@
+
 # используем в навигаци и выборе записи для уменьшения повторов кода
 def return_pages_dict(state):
     if state.column is not None:
@@ -192,6 +220,14 @@ def return_pages_dict(state):
 def search_navigation_administration(message):
 
     global recordings_base
+    global rec_expected
+    global date_and_station_expected
+
+    fnc.log_write(
+        module_name,
+        fnc.msg_log_text(message),
+    )
+
     user_id = message.from_user.id
 
     # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -375,21 +411,43 @@ def search_navigation_administration(message):
             and
             user_id == auth.bot_admin_id
     ):
+
+        fnc.log_write(
+            module_name,
+            fnc.msg_log_text(message),
+        )
+
         try:
+            msg = (
+                f'Число элементов в recordings_base до обновления: '
+                f'{len(recordings_base)}.\n'
+                'Пробую обновить...'
+            )
             listen_to_the_mds_bot.send_message(
                     user_id,
-                    f'Число элементов в recordings_base до обновления: '
-                    f'{len(recordings_base)}.\n'
-                    'Пробую обновить...',
+                    msg,
                 )
+            fnc.log_write(
+                module_name,
+                msg,
+            )
 
             recordings_base = pd.read_excel('recordings_base.xlsx')
 
+            msg = (
+                'Обновление прошло успешно!\n'
+                'Число элементов в recordings_base после обновления: '
+                f'{len(recordings_base)}'
+            )
             listen_to_the_mds_bot.send_message(
                 user_id,
                 'Обновление прошло успешно!\n'
                 'Число элементов в recordings_base после обновления: '
                 f'{len(recordings_base)}',
+            )
+            fnc.log_write(
+                module_name,
+                msg,
             )
         except Exception as e:
             listen_to_the_mds_bot.send_message(
@@ -397,22 +455,99 @@ def search_navigation_administration(message):
                 f'Возникла ошибка: {e}',
             )
 
-    # отправка собственного message_id администратору бота
-    elif user_id == auth.bot_admin_id:
+    # для добавления записи через тг
+    elif (
+            message.text == 'addrec'
+            and
+            user_id == auth.bot_admin_id
+    ):
+
+        fnc.log_write(
+            module_name,
+            'Добавление записи в recordings_base через мессенджер',
+        )
+
+        rec_expected = True
+
+        listen_to_the_mds_bot.send_message(
+            user_id,
+            'Ожидается аудиозапись',
+        )
+
+    elif (
+            user_id == auth.bot_admin_id
+            and
+            date_and_station_expected
+            and
+            len(message.text.split()) == 2
+    ):
+        date, station = message.text.split()[0], message.text.split()[1]
+        recordings_base['date'][len(recordings_base) - 1] = date
+        recordings_base['station'][len(recordings_base) - 1] = station
+        recordings_base.to_excel(
+            'recordings_base.xlsx',
+            index=False,
+        )
+        listen_to_the_mds_bot.send_message(
+            user_id,
+            'Информация о дате эфира и станции добавлена к последней записи.\n'
+            f'Число строк в recordings_base: {len(recordings_base)}.\n'
+            'Файл recordings_base.xlsx обновлен.',
+        )
+        date_and_station_expected = False
+
+@listen_to_the_mds_bot.message_handler(content_types=['audio'])
+def audio_id(message):
+
+    global rec_expected
+    global date_and_station_expected
+    global recordings_base
+
+    user_id = message.from_user.id
+    audio = message.audio
+
+    fnc.log_write(
+        module_name,
+        f'{fnc.msg_log_text(message)}\n\n{audio}',
+    )
+
+    if user_id == auth.bot_admin_id and not rec_expected:
         listen_to_the_mds_bot.send_message(
             user_id,
             message.message_id,
         )
 
-@listen_to_the_mds_bot.message_handler(content_types=['audio'])
-def audio_id(message):
+    elif user_id == auth.bot_admin_id and rec_expected:
+        new_line = pd.DataFrame(
+            index=[len(recordings_base)],
+            columns=[
+                'author',
+                'title',
+                'length',
+                'date',
+                'recording_id',
+                'station',
+            ]
+        )
+        ind = len(recordings_base)
+        from math import ceil
+        new_line['author'][ind] = audio.performer
+        new_line['title'][ind] = audio.title
+        new_line['length'][ind] = str(ceil(audio.duration/60))
+        new_line['recording_id'][ind] = str(message.message_id)
+        print(new_line)
 
-    user_id = message.from_user.id
+        recordings_base = recordings_base.append(new_line)
+        print(recordings_base)
 
-    if user_id == auth.bot_admin_id:
+        rec_expected = False
+        date_and_station_expected =True
+
         listen_to_the_mds_bot.send_message(
             user_id,
-            message.message_id,
+            'В recordings_base добавлена новая строка. '
+            'Ожидается ввод даты эфира и названия радиостанции в формате '
+            '"dd.mm.yyyy station".',
         )
 
 listen_to_the_mds_bot.polling(none_stop=True, interval=0)
