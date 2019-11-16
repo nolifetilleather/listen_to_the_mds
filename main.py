@@ -3,11 +3,12 @@ import pandas as pd
 from classes import *
 import auth
 import functions as fnc
+import re
 
 module_name = 'main'
 
 users_states_dict = {}
-recordings_base = pd.read_excel('recordings_base.xlsx', dtype=str)
+recordings_base = pd.read_excel('recordings_base.xlsx', dtype=str).fillna('')
 
 rec_expected = False
 date_and_station_expected = False
@@ -70,7 +71,9 @@ def start(message):
         ),
     )
 
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@@@@@@@@@@@@@@@@ ИЗМЕНЕНИЕ ПОРЯДКА СОРТИРОВКИ @@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['reverse_sort_by_date'])
 def reverse_sort_by_date(message):
 
@@ -105,7 +108,9 @@ def reverse_sort_by_date(message):
         ),
     )
 
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО АВТОРУ @@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['search_by_author'])
 def set_search_by_author(message):
 
@@ -134,7 +139,9 @@ def set_search_by_author(message):
         'Введите имя автора',
     )
 
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО НАЗВАНИЮ @@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['search_by_title'])
 def set_search_by_title(message):
 
@@ -163,7 +170,9 @@ def set_search_by_title(message):
         'Введите название',
     )
 
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@@@@@@@@@@@@@@@@@@@ ВЫБОР ПОИСКА ПО ДЛИНЕ @@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @listen_to_the_mds_bot.message_handler(commands=['search_by_length'])
 def set_search_by_length(message):
 
@@ -193,9 +202,11 @@ def set_search_by_length(message):
         reply_markup=length_choice_keyboard,
     )
 
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@@@@@@@@@@@@ ПОИСК, НАВИГАЦИЯ, АДМИНИСТРИРОВАНИЕ @@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-# используем в навигаци и выборе записи для уменьшения повторов кода
+# для уменьшения повторов кода
 def return_pages_dict(state):
     if state.column is not None:
         pgs_dict = fnc.dict_of_navigation_pages(
@@ -413,6 +424,7 @@ def search_navigation_administration(message):
     # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
     # для обновления recordings_base через сообщение в тг
+    # после добавления записи через excel таблицу
     elif (
             message.text == 'refreshdata'
             and
@@ -439,7 +451,9 @@ def search_navigation_administration(message):
                 msg,
             )
 
-            recordings_base = pd.read_excel('recordings_base.xlsx')
+            recordings_base = pd.read_excel(
+                'recordings_base.xlsx', dtype=str
+            ).fillna('')
 
             msg = (
                 'Обновление прошло успешно!\n'
@@ -462,7 +476,7 @@ def search_navigation_administration(message):
                 f'Возникла ошибка: {e}',
             )
 
-    # для добавления записи через тг
+    # для добавления записи через диалог с ботом
     elif (
             message.text == 'addrec'
             and
@@ -486,9 +500,12 @@ def search_navigation_administration(message):
             and
             date_and_station_expected
             and
-            len(message.text.split()) == 2
+            len(message.text.split()) > 1
     ):
-        date, station = message.text.split()[0], message.text.split()[1]
+        date, station = \
+            re.split(r' ', message.text, maxsplit=1)[0], \
+            re.split(r' ', message.text, maxsplit=1)[1]
+
         recordings_base['date'][len(recordings_base) - 1] = date
         recordings_base['station'][len(recordings_base) - 1] = station
         recordings_base.to_excel(
@@ -518,6 +535,8 @@ def audio_id(message):
         f'{fnc.msg_log_text(message)}\n\n{audio}',
     )
 
+    # вернет id сообщения с записью, если режим добавления
+    # через диалог не активен
     if user_id == auth.bot_admin_id and not rec_expected:
         listen_to_the_mds_bot.send_message(
             user_id,

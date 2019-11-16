@@ -28,4 +28,3 @@ class UserState:
         self.page = None
         self.strng = None
         self.column = None
-
